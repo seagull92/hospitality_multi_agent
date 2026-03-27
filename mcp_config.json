@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "hospitality-agent": {
+      "command": "python",
+      "args": [
+        "C:\\Users\\matte\\CascadeProjects\\hospitality_multi_agent\\mcp_server.py"
+      ],
+      "env": {
+        "GOOGLE_API_KEY": "your_google_api_key_here"
+      }
+    }
+  }
+}
