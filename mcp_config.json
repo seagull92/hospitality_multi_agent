@@ -5,9 +5,7 @@
       "args": [
         "C:\\Users\\matte\\CascadeProjects\\hospitality_multi_agent\\mcp_server.py"
       ],
-      "env": {
-        "GROQ_API_KEY": "your_groq_api_key_here"
-      }
+      "env": {}
     },
     "context7": {
       "command": "npx",
