@@ -52,13 +52,8 @@ def orchestrator_node(
     LLM-powered Orchestrator using the Command pattern (LangGraph 1.x standard).
 
     Returns a Command that atomically updates state AND fans out to the
-    selected worker nodes in parallel — replacing the older pattern of
-    returning a dict + a separate add_conditional_edges() call.
-
-    Upgrade path:
-    - Swap each worker node for RemoteGraph(url=...) for microservice scaling.
-    - Deploy via langgraph-api >= 0.4.21 to auto-expose /a2a/{id} endpoints
-      for cross-framework interoperability (LangGraph <-> CrewAI <-> custom).
+    selected worker nodes in parallel. Each worker is a RemoteGraph pointing
+    to an independently running langgraph dev server (see agents/ directory).
     """
     query = state.get("query", "")
     bi_data = state.get("bi_data", {})

@@ -1,6 +1,19 @@
 __pycache__/
 *.pyc
+*.pyo
 .env
 .venv/
 venv/
 env/
+
+# langgraph dev runtime state — not source code
+.langgraph_api/
+agents/**/.langgraph_api/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
