@@ -1,0 +1,7 @@
+{
+  "dependencies": ["../.."],
+  "graphs": {
+    "media_analyzer": "./server.py:create_graph"
+  },
+  "env": "../../.env"
+}

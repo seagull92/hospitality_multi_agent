@@ -1,0 +1,7 @@
+{
+  "dependencies": ["."],
+  "graphs": {
+    "hospitality_orchestrator": "./src/graph.py:create_hospitality_graph"
+  },
+  "env": ".env"
+}

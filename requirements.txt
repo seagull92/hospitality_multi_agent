@@ -1,5 +1,5 @@
-google-genai>=0.5.0
-langchain-google-genai>=1.0.1
+langchain-groq>=0.1.6
 langgraph>=0.0.26
 langchain>=0.1.11
 python-dotenv>=1.0.1
+langgraph-cli[inmem]>=0.1.0

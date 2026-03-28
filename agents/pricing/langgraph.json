@@ -1,0 +1,7 @@
+{
+  "dependencies": ["../.."],
+  "graphs": {
+    "pricing_optimizer": "./server.py:create_graph"
+  },
+  "env": "../../.env"
+}

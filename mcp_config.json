@@ -6,8 +6,12 @@
         "C:\\Users\\matte\\CascadeProjects\\hospitality_multi_agent\\mcp_server.py"
       ],
       "env": {
-        "GOOGLE_API_KEY": "your_google_api_key_here"
+        "GROQ_API_KEY": "your_groq_api_key_here"
       }
+    },
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp"]
     }
   }
 }

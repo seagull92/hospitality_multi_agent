@@ -28,8 +28,8 @@ def run_hospitality_analysis(
         media_budget: Current marketing budget (e.g., "$50,000")
         media_roas: Current Return on Ad Spend (e.g., "4.2x")
     """
-    if not os.getenv("GOOGLE_API_KEY") or os.getenv("GOOGLE_API_KEY") == "your_google_api_key_here":
-        return "ERROR: Google API Key is not configured. Please set GOOGLE_API_KEY."
+    if not os.getenv("GROQ_API_KEY") or os.getenv("GROQ_API_KEY") == "your_groq_api_key_here":
+        return "ERROR: Groq API Key is not configured. Please set GROQ_API_KEY."
 
     graph = create_hospitality_graph()
 
@@ -47,6 +47,8 @@ def run_hospitality_analysis(
         "query": query,
         "bi_data": bi_data,
         "media_data": media_data,
+        "next_agents": [],
+        "routing_reasoning": "",
         "bi_analysis": "",
         "media_analysis": "",
         "final_strategy": "",
@@ -58,7 +60,10 @@ def run_hospitality_analysis(
         final_state = graph.invoke(initial_state)
         
         result = [
-            "=== BI ANALYSIS ===",
+            f"=== ORCHESTRATOR ROUTING ===",
+            f"Agents activated: {', '.join(final_state.get('next_agents', []))}",
+            f"Reasoning: {final_state.get('routing_reasoning', 'N/A')}",
+            "\n=== BI ANALYSIS ===",
             final_state.get("bi_analysis", "N/A"),
             "\n=== MEDIA ANALYSIS ===",
             final_state.get("media_analysis", "N/A"),

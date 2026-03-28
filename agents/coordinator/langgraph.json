@@ -1,0 +1,7 @@
+{
+  "dependencies": ["../.."],
+  "graphs": {
+    "strategy_coordinator": "./server.py:create_graph"
+  },
+  "env": "../../.env"
+}

@@ -1,0 +1,7 @@
+{
+  "dependencies": ["../.."],
+  "graphs": {
+    "bi_analyzer": "./server.py:create_graph"
+  },
+  "env": "../../.env"
+}
