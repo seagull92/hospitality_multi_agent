@@ -2,6 +2,7 @@ import os
 import sys
 from langgraph.graph import StateGraph, START, END
 from langgraph.pregel.remote import RemoteGraph
+from langgraph.checkpoint.memory import MemorySaver
 from langgraph.types import RetryPolicy
 from dotenv import load_dotenv
 
@@ -81,4 +82,4 @@ def create_hospitality_graph():
     builder.add_edge("revenue_forecast_agent",  "strategy_coordinator")
     builder.add_edge("strategy_coordinator",    END)
 
-    return builder.compile()
+    return builder.compile(checkpointer=MemorySaver())

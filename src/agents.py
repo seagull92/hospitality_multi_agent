@@ -4,10 +4,18 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-llm = init_chat_model(
-    "groq:llama-3.3-70b-versatile",
+# Specialist agents: fast 8B model — focused single-domain analysis
+_specialist_llm = init_chat_model(
+    "groq:llama-3.1-8b-instant",
     temperature=0.2,
     max_tokens=400,
+)
+
+# Strategy coordinator: 70B model — needs multi-source synthesis quality
+_coordinator_llm = init_chat_model(
+    "groq:llama-3.3-70b-versatile",
+    temperature=0.2,
+    max_tokens=500,
 )
 
 def _log_read(agent: str, keys: dict) -> dict:
@@ -48,9 +56,9 @@ def bi_agent(state):
         "and extract actionable insights. Focus on revenue opportunities, identifying low-performing periods, "
         "and summarizing the financial health of the properties."
     )
-    response = llm.invoke([
+    response = _specialist_llm.invoke([
         SystemMessage(content=system_prompt),
-        HumanMessage(content=f"Target Query: {query}\n\nBI Data:\n{bi_data}"),
+        HumanMessage(content=f"Goal: {query}\n\nBI Data:\n{bi_data}"),
     ])
 
 
@@ -79,9 +87,9 @@ def media_agent(state):
         "Your task is to analyze the provided Media data (Ad spend, ROAS by channel, CTR, CPA) "
         "and determine how marketing dollars are currently performing and where they should be reallocated."
     )
-    response = llm.invoke([
+    response = _specialist_llm.invoke([
         SystemMessage(content=system_prompt),
-        HumanMessage(content=f"Target Query: {query}\n\nMedia Data:\n{media_data}"),
+        HumanMessage(content=f"Goal: {query}\n\nMedia Data:\n{media_data}"),
     ])
 
 
@@ -136,7 +144,7 @@ def strategy_coordinator_agent(state):
         f"Specialist Team Reports ({len(active)} source(s)):"
         f"{analyses_str}"
     )
-    response = llm.invoke([
+    response = _coordinator_llm.invoke([
         SystemMessage(content=system_prompt),
         HumanMessage(content=user_prompt),
     ])
@@ -166,7 +174,7 @@ def pricing_agent(state):
         "Based on the raw BI data provided, recommend specific percentage price adjustments "
         "for upcoming periods, with clear justification for each recommendation."
     )
-    response = llm.invoke([
+    response = _specialist_llm.invoke([
         SystemMessage(content=system_prompt),
         HumanMessage(content=f"Goal: {query}\n\nRaw BI Data:\n{bi_data}"),
     ])
@@ -196,7 +204,7 @@ def reputation_agent(state):
         "sentiment trends, top complaints and praises) and deliver specific, actionable "
         "recommendations to recover or strengthen guest satisfaction and online reputation."
     )
-    response = llm.invoke([
+    response = _specialist_llm.invoke([
         SystemMessage(content=system_prompt),
         HumanMessage(content=f"Goal: {query}\n\nReview & Reputation Data:\n{review_data}"),
     ])
@@ -227,7 +235,7 @@ def revenue_forecast_agent(state):
         "build a detailed revenue forecast with specific numerical projections, "
         "seasonality insights, and strategic recommendations for the next 12 months."
     )
-    response = llm.invoke([
+    response = _specialist_llm.invoke([
         SystemMessage(content=system_prompt),
         HumanMessage(content=f"Goal: {query}\n\nBI Performance Data:\n{bi_data}\n\nForecast Indicators:\n{forecast_data}"),
     ])
