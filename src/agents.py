@@ -7,7 +7,7 @@ load_dotenv()
 llm = init_chat_model(
     "groq:llama-3.3-70b-versatile",
     temperature=0.2,
-    max_tokens=2048,
+    max_tokens=400,
 )
 
 def _log_read(agent: str, keys: dict) -> dict:

@@ -5,14 +5,13 @@ Runs 6 use cases that prove the AI Orchestrator activates only the agents
 relevant to each scenario:
 
   #1  MARKETING CHANNEL CRISIS      1 agent   media_analyzer
-  #2  COMPETITOR RATE WAR           1 agent   pricing_optimizer
-  #3  Q4 REVENUE SHORTFALL          2 agents  bi_analyzer + pricing_optimizer
-  #4  GUEST REPUTATION CRISIS       2 agents  reputation_agent + media_analyzer
-  #5  Q4 FULL COMMERCIAL STRATEGY   3 agents  bi + media + pricing
-  #6  ANNUAL STRATEGIC REVIEW       5 agents  ALL
+  #2  Q4 REVENUE SHORTFALL          2 agents  bi_analyzer + pricing_optimizer
+  #3  Q4 FULL COMMERCIAL STRATEGY   3 agents  bi + media + pricing
+  #4  ANNUAL STRATEGIC REVIEW       5 agents  ALL
 """
 import os
 import sys
+import time
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -49,55 +48,25 @@ USE_CASES = [
     {
         "title":   "MARKETING CHANNEL CRISIS",
         "pattern": "1 agent  →  media_analyzer only",
-        "query": (
-            "Our Google Ads CTR collapsed from 3.2% to 0.9% overnight and ROAS dropped "
-            "to 1.3x. All other channels are holding steady. What is happening and how "
-            "do we fix this urgently before we waste more of the monthly budget?"
-        ),
+        "query": "Google Ads CTR dropped from 3.2% to 0.9% and ROAS fell to 1.3x. What is wrong and how do we fix it?",
         "bi_data":       {},
         "media_data":    {
-            "monthly_budget":          "$50,000",
-            "google_ads_roas":         "1.3x  (was 4.1x last week)",
-            "google_ads_ctr":          "0.9%  (was 3.2%)",
-            "meta_ads_roas":           "2.9x",
-            "campaign_focus":          "Brand Awareness (Global)",
-            "website_conversion_rate": "1.2%",
+            "monthly_budget":  "$50,000",
+            "google_ads_roas": "1.3x (was 4.1x)",
+            "google_ads_ctr":  "0.9% (was 3.2%)",
+            "meta_ads_roas":   "2.9x",
         },
-        "review_data":   {},
-        "forecast_data": {},
-    },
-    {
-        "title":   "COMPETITOR RATE WAR",
-        "pattern": "1 agent  →  pricing_optimizer only",
-        "query": (
-            "Our main competitor just slashed all room rates by 25% for the next 6 weeks. "
-            "Our ADR is now 20% above the market average and occupancy is starting to soften. "
-            "How should we respond — match, undercut, or hold pricing?"
-        ),
-        "bi_data":       {
-            "occupancy_rate":     "71%  (falling)",
-            "revpar":             "$168",
-            "adr":                "$237/night",
-            "competitor_pricing": "Now $178/night  (was $237/night, 25% cut)",
-            "booking_pace":       "Down 8% WoW since competitor announcement",
-        },
-        "media_data":    {},
         "review_data":   {},
         "forecast_data": {},
     },
     {
         "title":   "Q4 REVENUE SHORTFALL",
         "pattern": "2 agents  →  bi_analyzer + pricing_optimizer",
-        "query": (
-            "RevPAR is 22% below Q4 target with only 7 weeks remaining. Booking pace is "
-            "deteriorating and cancellations are rising. We need an urgent revenue recovery "
-            "plan combining performance diagnosis with a concrete pricing response."
-        ),
+        "query": "RevPAR is 22% below Q4 target with 7 weeks left. Diagnose the performance and recommend a pricing response.",
         "bi_data":       {
             "occupancy_rate":     "56%",
-            "revpar":             "$118  (target $152)",
-            "booking_pace":       "Down 28% YoY for Q4",
-            "cancellation_rate":  "18%  (Rising fast)",
+            "revpar":             "$118 (target $152)",
+            "booking_pace":       "Down 28% YoY",
             "competitor_pricing": "Avg $172/night",
         },
         "media_data":    {},
@@ -105,52 +74,19 @@ USE_CASES = [
         "forecast_data": {},
     },
     {
-        "title":   "GUEST REPUTATION CRISIS",
-        "pattern": "2 agents  →  reputation_agent + media_analyzer",
-        "query": (
-            "TripAdvisor rating dropped from 4.4 to 3.6 in 45 days. Negative reviews are "
-            "flooding in and direct booking conversion fell 22%. We need to understand what "
-            "is driving this and how to fix our marketing response to the crisis."
-        ),
-        "bi_data":       {},
-        "media_data":    {
-            "monthly_budget":          "$50,000",
-            "google_ads_roas":         "2.1x",
-            "meta_ads_roas":           "1.4x",
-            "campaign_focus":          "Brand Awareness (Global)",
-            "website_conversion_rate": "0.9%",
-        },
-        "review_data":   {
-            "tripadvisor_rating": "3.6  (was 4.4 six weeks ago)",
-            "google_rating":      "3.8",
-            "nps_score":          "14  (industry avg 42)",
-            "review_volume":      "320 reviews/month  (3x normal)",
-            "sentiment_trend":    "Rapidly declining",
-            "top_complaints":     "Room cleanliness, slow check-in, noise from renovation",
-        },
-        "forecast_data": {},
-    },
-    {
         "title":   "Q4 FULL COMMERCIAL STRATEGY",
         "pattern": "3 agents  →  bi_analyzer + media_analyzer + pricing_optimizer",
-        "query": (
-            "Q4 is 8 weeks away. Occupancy is projected at 62%, Meta Ads are "
-            "underperforming, and competitor rates are aggressive. Build a full commercial "
-            "strategy to maximise Q4 revenue across pricing and marketing channels."
-        ),
+        "query": "Q4 in 8 weeks: occupancy at 62%, Meta underperforming, competitor rates aggressive. Build a full commercial strategy.",
         "bi_data":       {
             "occupancy_rate":     "62%",
             "revpar":             "$145",
-            "booking_pace":       "Down 15% YoY for Q4",
-            "cancellation_rate":  "12%  (Stable)",
+            "booking_pace":       "Down 15% YoY",
             "competitor_pricing": "Avg $180/night",
         },
         "media_data":    {
-            "monthly_budget":          "$50,000",
-            "google_ads_roas":         "4.2x",
-            "meta_ads_roas":           "2.1x  (below 3x target)",
-            "campaign_focus":          "Brand Awareness (Global)",
-            "website_conversion_rate": "1.8%",
+            "monthly_budget":  "$50,000",
+            "google_ads_roas": "4.2x",
+            "meta_ads_roas":   "2.1x (below 3x target)",
         },
         "review_data":   {},
         "forecast_data": {},
@@ -158,40 +94,27 @@ USE_CASES = [
     {
         "title":   "ANNUAL STRATEGIC REVIEW",
         "pattern": "All 5 agents  →  bi + media + pricing + reputation + forecast",
-        "query": (
-            "Full annual review across all business dimensions: evaluate financial "
-            "performance, marketing ROI, pricing competitiveness, guest satisfaction "
-            "trends, and produce a 12-month revenue forecast with strategic priorities."
-        ),
+        "query": "Annual review: assess financial performance, marketing ROI, pricing, guest satisfaction, and produce a 12-month revenue forecast.",
         "bi_data":       {
             "occupancy_rate":     "68%",
             "revpar":             "$152",
-            "adr":                "$224/night",
             "booking_pace":       "+3% YoY",
-            "cancellation_rate":  "10%  (Stable)",
             "competitor_pricing": "Avg $178/night",
         },
         "media_data":    {
-            "monthly_budget":          "$50,000",
-            "google_ads_roas":         "3.8x",
-            "meta_ads_roas":           "2.4x",
-            "campaign_focus":          "Mixed — Brand + Direct Response",
-            "website_conversion_rate": "2.3%",
+            "monthly_budget":  "$50,000",
+            "google_ads_roas": "3.8x",
+            "meta_ads_roas":   "2.4x",
         },
         "review_data":   {
             "tripadvisor_rating": "4.1",
-            "google_rating":      "4.3",
             "nps_score":          "48",
-            "review_volume":      "180 reviews/month",
-            "sentiment_trend":    "Stable, slight improvement",
-            "top_positives":      "Location, breakfast, staff friendliness",
+            "sentiment_trend":    "Stable",
         },
         "forecast_data": {
             "revenue_trend_ytd":         "+6% vs prior year",
-            "market_growth_rate":        "3.2%",
-            "forward_booking_index":     "Q1 strong (+12%), Q2 moderate (+4%)",
-            "demand_forecast":           "Leisure recovery Q1, corporate travel soft Q2",
-            "revpar_forecast_next_year": "$162 optimistic / $148 base scenario",
+            "forward_booking_index":     "Q1 +12%, Q2 +4%",
+            "revpar_forecast_next_year": "$162 optimistic / $148 base",
         },
     },
 ]
@@ -319,6 +242,9 @@ def main():
     for i, case in enumerate(USE_CASES, 1):
         result = run_case(graph, case, i, len(USE_CASES))
         results.append(result)
+        if i < len(USE_CASES):
+            print("  Pausing 8s to respect Groq TPM limit...")
+            time.sleep(8)
 
     routing_summary(results)
 

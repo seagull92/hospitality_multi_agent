@@ -11,7 +11,7 @@ load_dotenv()
 _router_llm = init_chat_model(
     "groq:llama-3.3-70b-versatile",
     temperature=0,
-    max_tokens=512,
+    max_tokens=256,
 )
 
 
