@@ -98,50 +98,54 @@ def media_agent(state):
 def strategy_coordinator_agent(state):
     """
     Strategy Coordinator — the merge/synthesis node.
-    READS : query, bi_analysis, media_analysis, additional_insights
+    READS : query + all available agent analysis fields
     WRITES: final_strategy
 
-    This is where BI and Media data CONVERGE: the coordinator reads outputs
-    written by bi_analyzer and media_analyzer and synthesizes them.
+    Dynamically synthesizes whatever analyses are present in state.
+    This handles any subset of agents being activated — 1, 2, 3, or all 5.
     All communication happened via shared state — no direct agent-to-agent calls.
     """
-    bi_analysis        = state.get("bi_analysis", "")
-    media_analysis     = state.get("media_analysis", "")
-    additional_insights = state.get("additional_insights", {})
-    query              = state.get("query", "")
+    query = state.get("query", "")
 
+    analyses_map = {
+        "Business Intelligence Analysis": state.get("bi_analysis",         ""),
+        "Media & Marketing Analysis":     state.get("media_analysis",      ""),
+        "Pricing & Revenue Analysis":     state.get("pricing_analysis",    ""),
+        "Guest Reputation Analysis":      state.get("reputation_analysis", ""),
+        "Revenue Forecast":               state.get("forecast_analysis",   ""),
+    }
+    for agent_name, insight in state.get("additional_insights", {}).items():
+        analyses_map[agent_name.replace("_", " ").title()] = insight
 
-    extra_insights_str = ""
-    for agent_name, insight in additional_insights.items():
-        extra_insights_str += f"\n\n{agent_name.capitalize()} Insights:\n{insight}"
+    active = {k: v for k, v in analyses_map.items() if v.strip()}
+
+    analyses_str = "".join(
+        f"\n\n--- {source} ---\n{content}" for source, content in active.items()
+    )
 
     system_prompt = (
         "You are the Chief Commercial Officer (CCO) of a hospitality group. "
-        "Your task is to review the independent analyses from your Business Intelligence team "
-        "and your Media/Marketing team, and synthesize them into a cohesive, actionable business strategy. "
-        "If BI identifies a low-occupancy period, how should Media adjust? If Media has high ROAS but BI shows low RevPAR, why?"
+        "Review the independent analyses provided by your specialist team and "
+        "synthesize them into a single, cohesive, and immediately actionable business strategy. "
+        "Connect insights across disciplines — if pricing is under pressure AND reviews are falling, "
+        "explain the link. If ROAS is strong but RevPAR is low, diagnose the gap. "
+        "Only use what is provided; do not invent data."
     )
     user_prompt = (
         f"Original Goal: {query}\n\n"
-        f"BI Analysis (from bi_analyzer via shared state):\n{bi_analysis}\n\n"
-        f"Media Analysis (from media_analyzer via shared state):\n{media_analysis}"
-        f"{extra_insights_str}"
+        f"Specialist Team Reports ({len(active)} source(s)):"
+        f"{analyses_str}"
     )
     response = llm.invoke([
         SystemMessage(content=system_prompt),
         HumanMessage(content=user_prompt),
     ])
 
-
     return {
         "final_strategy": response.content,
-        "history": ["strategy_coordinator merged bi_analysis + media_analysis -> final_strategy"],
+        "history": [f"strategy_coordinator synthesized {len(active)} analyses -> final_strategy"],
         "agent_messages": [
-            _log_read("strategy_coordinator", {
-                "bi_analysis": bi_analysis,
-                "media_analysis": media_analysis,
-                "additional_insights_keys": list(additional_insights.keys()),
-            }),
+            _log_read("strategy_coordinator",  {"sources_read": list(active.keys())}),
             _log_write("strategy_coordinator", {"final_strategy": response.content}),
         ],
     }
@@ -167,15 +171,72 @@ def pricing_agent(state):
         HumanMessage(content=f"Goal: {query}\n\nRaw BI Data:\n{bi_data}"),
     ])
 
-    current_insights = state.get("additional_insights", {})
-    current_insights["pricing_agent"] = response.content
-
-
     return {
-        "additional_insights": current_insights,
-        "history": ["pricing_optimizer wrote pricing recommendations to additional_insights"],
+        "pricing_analysis": response.content,
+        "history": ["pricing_optimizer wrote pricing_analysis to state"],
         "agent_messages": [
             _log_read("pricing_optimizer",  {"query": query, "bi_data": bi_data}),
-            _log_write("pricing_optimizer", {"additional_insights[pricing_agent]": response.content}),
+            _log_write("pricing_optimizer", {"pricing_analysis": response.content}),
+        ],
+    }
+
+
+def reputation_agent(state):
+    """
+    Guest Experience & Reputation Agent.
+    READS : query, review_data
+    WRITES: reputation_analysis  (consumed by strategy_coordinator)
+    """
+    review_data = state.get("review_data", {})
+    query       = state.get("query", "")
+
+    system_prompt = (
+        "You are a Guest Experience & Reputation Manager for a hospitality group. "
+        "Analyze the provided review data (platform ratings, NPS score, review volume, "
+        "sentiment trends, top complaints and praises) and deliver specific, actionable "
+        "recommendations to recover or strengthen guest satisfaction and online reputation."
+    )
+    response = llm.invoke([
+        SystemMessage(content=system_prompt),
+        HumanMessage(content=f"Goal: {query}\n\nReview & Reputation Data:\n{review_data}"),
+    ])
+
+    return {
+        "reputation_analysis": response.content,
+        "history": ["reputation_agent wrote reputation_analysis to state"],
+        "agent_messages": [
+            _log_read("reputation_agent",  {"query": query, "review_data": review_data}),
+            _log_write("reputation_agent", {"reputation_analysis": response.content}),
+        ],
+    }
+
+
+def revenue_forecast_agent(state):
+    """
+    Revenue Forecasting Agent.
+    READS : query, bi_data, forecast_data
+    WRITES: forecast_analysis  (consumed by strategy_coordinator)
+    """
+    bi_data       = state.get("bi_data",       {})
+    forecast_data = state.get("forecast_data", {})
+    query         = state.get("query", "")
+
+    system_prompt = (
+        "You are a Revenue Forecasting Analyst for a hospitality group. "
+        "Using the provided historical BI performance data and forward-looking market indicators, "
+        "build a detailed revenue forecast with specific numerical projections, "
+        "seasonality insights, and strategic recommendations for the next 12 months."
+    )
+    response = llm.invoke([
+        SystemMessage(content=system_prompt),
+        HumanMessage(content=f"Goal: {query}\n\nBI Performance Data:\n{bi_data}\n\nForecast Indicators:\n{forecast_data}"),
+    ])
+
+    return {
+        "forecast_analysis": response.content,
+        "history": ["revenue_forecast_agent wrote forecast_analysis to state"],
+        "agent_messages": [
+            _log_read("revenue_forecast_agent",  {"query": query, "bi_data": bi_data, "forecast_data": forecast_data}),
+            _log_write("revenue_forecast_agent", {"forecast_analysis": response.content}),
         ],
     }

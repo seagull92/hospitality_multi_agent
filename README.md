@@ -16,14 +16,16 @@ A production-ready multi-agent system built with **LangGraph**, **Groq (Llama 3.
                           │   src/graph.py  (StateGraph) │
                           │                              │
                           │   START → orchestrator       │  ← in-process LLM router
-                          │              │               │    (Command pattern)
-                          │    ┌─────────┼─────────┐     │
-                          │    ▼         ▼         ▼     │
-                          │  :8001     :8002     :8003   │  ← RemoteGraph HTTP calls
-                          │ bi_analyzer media  pricing   │
-                          │    └─────────┼─────────┘     │
+                          │              │               │    (Command pattern,
+                          │    ┌─────────┼──────────┐    │     1 to 5 workers)
+                          │    ▼         ▼          ▼    │
+                          │  :8001     :8002      :8003  │  ← RemoteGraph HTTP
+                          │ bi_anal.  media     pricing  │
+                          │              :8005    :8006  │
+                          │           reputa.  forecast  │
+                          │    └─────────┼──────────┘    │
                           │             ▼                 │
-                          │        :8004 coordinator      │  ← RemoteGraph HTTP call
+                          │     :8004 coordinator         │  ← RemoteGraph HTTP
                           │             │                 │
                           │           END                 │
                           └──────────────────────────────┘
@@ -31,19 +33,33 @@ A production-ready multi-agent system built with **LangGraph**, **Groq (Llama 3.
 
 ### Agents
 
-| Agent | Port | Role |
-|---|---|---|
-| `bi_analyzer` | 8001 | Analyzes occupancy, RevPAR, booking pace |
-| `media_analyzer` | 8002 | Evaluates ad spend, ROAS, channel performance |
-| `pricing_optimizer` | 8003 | Recommends rate adjustments and revenue strategy |
-| `strategy_coordinator` | 8004 | CCO — synthesizes all three into a final strategy |
+| Agent | Port | Data it reads | Writes to |
+|---|---|---|---|
+| `bi_analyzer` | 8001 | `bi_data` | `bi_analysis` |
+| `media_analyzer` | 8002 | `media_data` | `media_analysis` |
+| `pricing_optimizer` | 8003 | `bi_data` (pricing context) | `pricing_analysis` |
+| `strategy_coordinator` | 8004 | all analysis fields | `final_strategy` |
+| `reputation_agent` | 8005 | `review_data` | `reputation_analysis` |
+| `revenue_forecast_agent` | 8006 | `bi_data` + `forecast_data` | `forecast_analysis` |
 
 ### Key design decisions
 
-- **Blackboard pattern** — agents never call each other directly; all communication is through `AgentState` (shared state over HTTP JSON)
-- **Parallel fan-out** — bi, media, and pricing agents run simultaneously via `Command` goto
+- **Dynamic routing** — orchestrator activates only agents whose required data is non-empty; 1 to 5 workers per query
+- **Blackboard pattern** — agents never call each other; all communication is JSON over HTTP through `AgentState`
+- **Parallel fan-out** — selected workers run simultaneously via `Command(goto=[...])`
 - **State reducers** — `_keep_nonempty`, `_merge_dicts`, `operator.add` prevent parallel write conflicts
-- **RemoteGraph exclusively** — no in-process fallback; forces true microservice separation
+- **RemoteGraph exclusively** — no in-process fallback; every agent is a true independent microservice
+
+### Use cases demonstrating routing patterns
+
+| # | Scenario | Agents activated |
+|---|---|---|
+| 1 | Marketing channel crisis | 1 — `media_analyzer` |
+| 2 | Competitor rate war | 1 — `pricing_optimizer` |
+| 3 | Q4 revenue shortfall | 2 — `bi_analyzer` + `pricing_optimizer` |
+| 4 | Guest reputation crisis | 2 — `reputation_agent` + `media_analyzer` |
+| 5 | Q4 full commercial strategy | 3 — `bi` + `media` + `pricing` |
+| 6 | Annual strategic review | 5 — all agents |
 
 ---
 
@@ -68,11 +84,11 @@ Optional (for LangSmith run tracing):
 - `LANGCHAIN_TRACING_V2=true`
 - `LANGCHAIN_PROJECT=hospitality-multi-agent`
 
-### 3. Start all 4 agent servers
+### 3. Start all 6 agent servers
 ```powershell
 .\start_agents.ps1
 ```
-This opens 4 terminal windows, each running `langgraph dev` on its own port. Wait for all to show `Ready`.
+This opens 6 terminal windows (ports 8001–8006), each running `langgraph dev`. Wait for all to show `Ready`.
 
 ### 4. Run the demo
 ```bash
@@ -97,7 +113,9 @@ hospitality_multi_agent/
 │   ├── bi/            server.py + langgraph.json  → port 8001
 │   ├── media/         server.py + langgraph.json  → port 8002
 │   ├── pricing/       server.py + langgraph.json  → port 8003
-│   └── coordinator/   server.py + langgraph.json  → port 8004
+│   ├── coordinator/   server.py + langgraph.json  → port 8004
+│   ├── reputation/    server.py + langgraph.json  → port 8005
+│   └── forecast/      server.py + langgraph.json  → port 8006
 ├── src/
 │   ├── state.py       AgentState TypedDict with reducers
 │   ├── orchestrator.py  LLM router (Command pattern)
