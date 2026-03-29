@@ -12,6 +12,7 @@ relevant to each scenario:
 import os
 import sys
 import time
+import uuid
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -156,8 +157,9 @@ def run_case(graph, case: dict, index: int, total: int) -> dict:
     initial_state = build_initial_state(case)
     acc: dict = {}
 
+    config = {"configurable": {"thread_id": str(uuid.uuid4())}}
     print("  Agents running...", flush=True)
-    for chunk in graph.stream(initial_state, stream_mode="updates"):
+    for chunk in graph.stream(initial_state, config=config, stream_mode="updates"):
         for node_name, delta in chunk.items():
             print(f"    {AGENT_LABELS.get(node_name, node_name):<42} done")
             for k, v in delta.items():
