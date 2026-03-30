@@ -12,9 +12,12 @@ from src.state import AgentState
 load_dotenv()
 
 # ── Agent server URLs ─────────────────────────────────────────────────────────
-# Each agent runs as an independent langgraph dev server (see agents/ directory).
-# Start all servers with: .\start_agents.ps1
-# Override with env vars for production deployments.
+# DEV:  agents run locally on localhost ports via `langgraph dev`.
+# PROD: set these env vars to Kubernetes service DNS names, e.g.:
+#   BI_AGENT_URL=http://bi-agent-svc:8000
+#   MEDIA_AGENT_URL=http://media-agent-svc:8000
+#   ... one Service per pod, each exposing the langgraph-api HTTP interface.
+# The default localhost values let the code run locally with no env file changes.
 _BI_URL = os.getenv("BI_AGENT_URL", "http://127.0.0.1:8001")
 _MEDIA_URL = os.getenv("MEDIA_AGENT_URL", "http://127.0.0.1:8002")
 _PRICING_URL = os.getenv("PRICING_AGENT_URL", "http://127.0.0.1:8003")
@@ -81,4 +84,18 @@ def create_hospitality_graph():
     builder.add_edge("revenue_forecast_agent",  "strategy_coordinator")
     builder.add_edge("strategy_coordinator",    END)
 
+    # PROD — MemorySaver is in-process and lost on restart. This is the ONE
+    # checkpointer that MUST change for production: the orchestrator holds the
+    # full multi-agent run state and needs durable storage for fault tolerance,
+    # resume-on-failure, and audit history.
+    #
+    # Replace with:
+    #   from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+    #   checkpointer = AsyncPostgresSaver.from_conn_string(os.getenv("DATABASE_URL"))
+    # or Redis:
+    #   from langgraph.checkpoint.redis import RedisSaver
+    #   checkpointer = RedisSaver.from_conn_string(os.getenv("REDIS_URL"))
+    #
+    # The agent pod checkpointers (agents/*/server.py) can keep MemorySaver
+    # because each pod processes one stateless request at a time.
     return builder.compile(checkpointer=MemorySaver())
