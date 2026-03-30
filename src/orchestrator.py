@@ -1,4 +1,4 @@
-from typing import List, Literal
+from typing import Literal
 
 from dotenv import load_dotenv
 from langchain.chat_models import init_chat_model
@@ -18,21 +18,15 @@ _router_llm = init_chat_model(
 
 class RoutingDecision(BaseModel):
     """Structured output schema for the orchestrator's routing decision."""
-    agents: List[Literal[
+    agents: list[Literal[
         "bi_analyzer",
         "media_analyzer",
         "pricing_optimizer",
         "reputation_agent",
         "revenue_forecast_agent",
-    ]] = Field(
-        description=(
-            "List of worker agents to activate. "
-            "Select ONLY those whose domain is relevant to the query AND whose "
-            "required data fields are non-empty in the available data."
-        )
-    )
+    ]] = Field(description="Names of the specialist agents to activate.")
     reasoning: str = Field(
-        description="One-sentence explanation of which agents were selected and why."
+        description="One sentence explaining which agents were selected and why."
     )
 
 
@@ -41,27 +35,33 @@ _router = _router_llm.with_structured_output(RoutingDecision)
 _SYSTEM_PROMPT = """\
 You are a routing agent for a hospitality revenue intelligence system.
 
-Task: given a natural-language query and a data manifest, return the minimal set of
-specialist agents to activate.
+Task: given a natural-language query and a data manifest, return the minimal
+set of specialist agents to activate.
 
 Agent registry:
-  bi_analyzer            data: bi_data       capability: financial KPI analysis
-                                              (occupancy_rate, revpar, adr, booking_pace, cancellation_rate)
-  media_analyzer         data: media_data    capability: paid media performance
-                                              (monthly_budget, google_ads_roas, meta_ads_roas, ctr, cpa)
-  pricing_optimizer      data: bi_data       capability: rate strategy and competitive positioning
-                                              (competitor_pricing, revpar, occupancy_rate, adr)
-  reputation_agent       data: review_data   capability: guest satisfaction and online reputation
-                                              (tripadvisor_rating, google_rating, nps_score, sentiment_trend)
-  revenue_forecast_agent data: forecast_data capability: 12-month revenue projection and demand modelling
-                                              (revenue_trend_ytd, market_growth_rate, forward_booking_index)
+  bi_analyzer            data: bi_data
+                         capability: financial KPI analysis
+                         fields: occupancy_rate, revpar, adr, booking_pace
+  media_analyzer         data: media_data
+                         capability: paid media performance
+                         fields: monthly_budget, google_ads_roas, meta_ads_roas, ctr
+  pricing_optimizer      data: bi_data
+                         capability: rate strategy and competitive positioning
+                         fields: competitor_pricing, revpar, occupancy_rate, adr
+  reputation_agent       data: review_data
+                         capability: guest satisfaction and online reputation
+                         fields: tripadvisor_rating, google_rating, nps_score
+  revenue_forecast_agent data: forecast_data
+                         capability: 12-month revenue projection and demand modelling
+                         fields: revenue_trend_ytd, market_growth_rate
 
 Routing logic:
   - Exclude any agent whose required data domain is absent from the manifest.
-  - From the remaining agents, select those whose capability is materially relevant to the query.
-  - When a query spans multiple domains and all required data is present, activate all relevant agents.
+  - Select agents whose capability is materially relevant to the query.
+  - When a query spans multiple domains and all data is present, activate all
+    relevant agents.
 
-Return a RoutingDecision with the list of selected agent names and a one-sentence justification.\
+Return a RoutingDecision with selected agent names and a one-sentence justification.\
 """
 
 
@@ -106,7 +106,7 @@ def orchestrator_node(
 
     return Command(
         update={
-            "next_agents":       decision.agents,
+            "next_agents": decision.agents,
             "routing_reasoning": decision.reasoning,
         },
         goto=decision.agents,
