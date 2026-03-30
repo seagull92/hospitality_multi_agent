@@ -32,34 +32,40 @@ class RoutingDecision(BaseModel):
 
 _router = _router_llm.with_structured_output(RoutingDecision)
 
+# Agent registry: maps each agent to its required data domain and capability.
+# Data-availability filtering is done deterministically before any LLM call.
+# The LLM only receives agents whose data domain is actually populated.
+_AGENT_REGISTRY: dict[str, dict[str, str]] = {
+    "bi_analyzer": {
+        "domain":     "bi_data",
+        "capability": "financial KPI analysis (occupancy, RevPAR, ADR, booking pace)",
+    },
+    "pricing_optimizer": {
+        "domain":     "bi_data",
+        "capability": "rate strategy and competitive positioning",
+    },
+    "media_analyzer": {
+        "domain":     "media_data",
+        "capability": "paid media performance (ad spend, ROAS, CTR by channel)",
+    },
+    "reputation_agent": {
+        "domain":     "review_data",
+        "capability": "guest satisfaction and online reputation management",
+    },
+    "revenue_forecast_agent": {
+        "domain":     "forecast_data",
+        "capability": "12-month revenue projection and demand modelling",
+    },
+}
+
 _SYSTEM_PROMPT = """\
 You are a routing agent for a hospitality revenue intelligence system.
 
-Task: given a natural-language query and a data manifest, return the minimal
-set of specialist agents to activate.
+Select the specialist agents best suited to answer the query.
+Choose only from the available specialists listed below.
 
-Agent registry:
-  bi_analyzer            data: bi_data
-                         capability: financial KPI analysis
-                         fields: occupancy_rate, revpar, adr, booking_pace
-  media_analyzer         data: media_data
-                         capability: paid media performance
-                         fields: monthly_budget, google_ads_roas, meta_ads_roas, ctr
-  pricing_optimizer      data: bi_data
-                         capability: rate strategy and competitive positioning
-                         fields: competitor_pricing, revpar, occupancy_rate, adr
-  reputation_agent       data: review_data
-                         capability: guest satisfaction and online reputation
-                         fields: tripadvisor_rating, google_rating, nps_score
-  revenue_forecast_agent data: forecast_data
-                         capability: 12-month revenue projection and demand modelling
-                         fields: revenue_trend_ytd, market_growth_rate
-
-Routing logic:
-  - Exclude any agent whose required data domain is absent from the manifest.
-  - Select agents whose capability is materially relevant to the query.
-  - When a query spans multiple domains and all data is present, activate all
-    relevant agents.
+Available specialists:
+{available_agents}
 
 Return a RoutingDecision with selected agent names and a one-sentence justification.\
 """
@@ -77,31 +83,43 @@ def orchestrator_node(
     ]
 ]:
     """
-    LLM-powered Orchestrator using the Command pattern (LangGraph 1.x standard).
+    Two-stage routing using the LangGraph 1.x Command pattern.
 
-    Returns a Command that atomically updates state AND fans out to the
-    selected worker nodes in parallel. Each worker is a RemoteGraph pointing
-    to an independently running langgraph dev server (see agents/ directory).
+    Stage 1 — deterministic pre-filter (no LLM):
+      Exclude any agent whose data domain is absent from state.
+      This is a Python dict lookup — fast, free, and testable.
+
+    Stage 2 — LLM selection:
+      The model receives only the pre-filtered agent list and the raw
+      user query. It selects agents based purely on query intent vs.
+      agent capability. No internal state details are exposed to the LLM.
+
+    In LangSmith the human message is the raw user query — nothing else.
     """
     query = state.get("query", "")
-    bi_data = state.get("bi_data", {})
-    media_data = state.get("media_data", {})
+    data_domains = {
+        "bi_data":       state.get("bi_data",       {}),
+        "media_data":    state.get("media_data",     {}),
+        "review_data":   state.get("review_data",    {}),
+        "forecast_data": state.get("forecast_data",  {}),
+    }
 
-    review_data = state.get("review_data", {})
-    forecast_data = state.get("forecast_data", {})
+    # Stage 1: exclude agents whose data domain is absent — O(n) lookup
+    available = {
+        name: meta
+        for name, meta in _AGENT_REGISTRY.items()
+        if data_domains.get(meta["domain"])
+    }
 
-    user_prompt = (
-        f"Query: {query}\n\n"
-        f"Data manifest:\n"
-        f"  bi_data:       {list(bi_data.keys()) if bi_data else 'not provided'}\n"
-        f"  media_data:    {list(media_data.keys()) if media_data else 'not provided'}\n"
-        f"  review_data:   {list(review_data.keys()) if review_data else 'not provided'}\n"
-        f"  forecast_data: {list(forecast_data.keys()) if forecast_data else 'not provided'}"
+    # Stage 2: LLM picks from available agents based on query intent only
+    agents_block = "\n".join(
+        f"  {name}: {meta['capability']}" for name, meta in available.items()
     )
+    system_prompt = _SYSTEM_PROMPT.format(available_agents=agents_block)
 
     decision: RoutingDecision = _router.invoke([
-        SystemMessage(content=_SYSTEM_PROMPT),
-        HumanMessage(content=user_prompt),
+        SystemMessage(content=system_prompt),
+        HumanMessage(content=query),
     ])
 
     return Command(
