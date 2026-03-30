@@ -38,22 +38,31 @@ class RoutingDecision(BaseModel):
 
 _router = _router_llm.with_structured_output(RoutingDecision)
 
-_SYSTEM_PROMPT = """You are the Orchestrator of a hospitality intelligence platform.
-Your sole job is to analyze the incoming query and the available data fields, then decide
-which specialist worker agents must be activated.
+_SYSTEM_PROMPT = """\
+You are a routing agent for a hospitality revenue intelligence system.
 
-Available workers and their required data:
-- bi_analyzer            requires: BI data (occupancy, RevPAR, booking pace, financials)
-- media_analyzer         requires: Media data (ad spend, ROAS, CTR, CPA, campaigns)
-- pricing_optimizer      requires: BI data (competitor pricing, ADR, occupancy)
-- reputation_agent       requires: Review data (ratings, NPS, sentiment, review volume)
-- revenue_forecast_agent requires: Forecast data (trends, market growth, demand)
+Task: given a natural-language query and a data manifest, return the minimal set of
+specialist agents to activate.
 
-Strict rules:
-1. NEVER activate an agent whose required data fields are EMPTY — it has nothing to analyze.
-2. Activate ONLY agents whose domain directly addresses the query.
-3. You may activate multiple agents when the query spans several domains AND data is present.
-4. For comprehensive queries with all data present, activate all relevant agents."""
+Agent registry:
+  bi_analyzer            data: bi_data       capability: financial KPI analysis
+                                              (occupancy_rate, revpar, adr, booking_pace, cancellation_rate)
+  media_analyzer         data: media_data    capability: paid media performance
+                                              (monthly_budget, google_ads_roas, meta_ads_roas, ctr, cpa)
+  pricing_optimizer      data: bi_data       capability: rate strategy and competitive positioning
+                                              (competitor_pricing, revpar, occupancy_rate, adr)
+  reputation_agent       data: review_data   capability: guest satisfaction and online reputation
+                                              (tripadvisor_rating, google_rating, nps_score, sentiment_trend)
+  revenue_forecast_agent data: forecast_data capability: 12-month revenue projection and demand modelling
+                                              (revenue_trend_ytd, market_growth_rate, forward_booking_index)
+
+Routing logic:
+  - Exclude any agent whose required data domain is absent from the manifest.
+  - From the remaining agents, select those whose capability is materially relevant to the query.
+  - When a query spans multiple domains and all required data is present, activate all relevant agents.
+
+Return a RoutingDecision with the list of selected agent names and a one-sentence justification.\
+"""
 
 
 def orchestrator_node(
@@ -83,10 +92,11 @@ def orchestrator_node(
 
     user_prompt = (
         f"Query: {query}\n\n"
-        f"Available BI data fields      : {list(bi_data.keys()) or 'EMPTY'}\n"
-        f"Available Media data fields   : {list(media_data.keys()) or 'EMPTY'}\n"
-        f"Available Review data fields  : {list(review_data.keys()) or 'EMPTY'}\n"
-        f"Available Forecast data fields: {list(forecast_data.keys()) or 'EMPTY'}"
+        f"Data manifest:\n"
+        f"  bi_data:       {list(bi_data.keys()) if bi_data else 'not provided'}\n"
+        f"  media_data:    {list(media_data.keys()) if media_data else 'not provided'}\n"
+        f"  review_data:   {list(review_data.keys()) if review_data else 'not provided'}\n"
+        f"  forecast_data: {list(forecast_data.keys()) if forecast_data else 'not provided'}"
     )
 
     decision: RoutingDecision = _router.invoke([
