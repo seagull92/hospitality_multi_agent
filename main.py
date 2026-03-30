@@ -20,7 +20,7 @@ from src.graph import create_hospitality_graph
 
 load_dotenv()
 
-# ── Formatting helpers ────────────────────────────────────────────────────────
+# ── Formatting helpers ───────────────────────────────────────────────────────────────────────────────
 W = 80
 
 
@@ -42,7 +42,7 @@ AGENT_LABELS = {
     "strategy_coordinator":  "Chief Commercial Officer (CCO)",
 }
 
-# Maps agent node-name → (state field it writes, display label)
+# Maps agent node-name -> (state field it writes, display label)
 AGENT_OUTPUT_FIELDS = {
     "bi_analyzer":           ("bi_analysis",         "Business Intelligence Analyst"),
     "media_analyzer":        ("media_analysis",       "Media & Marketing Director"),
@@ -51,11 +51,11 @@ AGENT_OUTPUT_FIELDS = {
     "revenue_forecast_agent": ("forecast_analysis", "Revenue Forecast Analyst"),
 }
 
-# ── Use cases ─────────────────────────────────────────────────────────────────
+# ── Use cases ─────────────────────────────────────────────────────────────────────────────────
 USE_CASES = [
     {
         "title":   "MARKETING CHANNEL CRISIS",
-        "pattern": "1 agent  →  media_analyzer only",
+        "pattern": "1 agent  ->  media_analyzer only",
         "query": (
             "Google Ads CTR dropped from 3.2% to 0.9% and ROAS fell to 1.3x. "
             "What is wrong and how do we fix it?"
@@ -72,7 +72,7 @@ USE_CASES = [
     },
     {
         "title":   "Q4 REVENUE SHORTFALL",
-        "pattern": "2 agents  →  bi_analyzer + pricing_optimizer",
+        "pattern": "2 agents  ->  bi_analyzer + pricing_optimizer",
         "query": (
             "RevPAR is 22% below Q4 target with 7 weeks left. "
             "Diagnose the performance and recommend a pricing response."
@@ -89,7 +89,7 @@ USE_CASES = [
     },
     {
         "title":   "Q4 FULL COMMERCIAL STRATEGY",
-        "pattern": "3 agents  →  bi_analyzer + media_analyzer + pricing_optimizer",
+        "pattern": "3 agents  ->  bi_analyzer + media_analyzer + pricing_optimizer",
         "query": (
             "Q4 in 8 weeks: occupancy at 62%, Meta underperforming, competitor rates aggressive. "
             "Build a full commercial strategy."
@@ -110,7 +110,7 @@ USE_CASES = [
     },
     {
         "title":   "ANNUAL STRATEGIC REVIEW",
-        "pattern": "All 5 agents  →  bi + media + pricing + reputation + forecast",
+        "pattern": "All 5 agents  ->  bi + media + pricing + reputation + forecast",
         "query": (
             "Annual review: assess financial performance, marketing ROI, pricing, "
             "guest satisfaction, and produce a 12-month revenue forecast."
@@ -187,14 +187,14 @@ def run_case(graph, case: dict, index: int, total: int) -> dict:
 
     activated = acc.get("next_agents", [])
 
-    # ── Routing decision ──────────────────────────────────────────────────────
+    # ── Routing decision ──────────────────────────────────────────────────────────────────────────────
     print(f"\n  {sep()}")
     print("  ORCHESTRATOR ROUTING DECISION")
     print(f"  {sep()}")
     print(f"  Activated : {activated}")
     print(f"  Reasoning : {acc.get('routing_reasoning', '')}")
 
-    # ── Worker outputs ────────────────────────────────────────────────────────
+    # ── Worker outputs ───────────────────────────────────────────────────────────────────────────────
     print(f"\n  {sep()}")
     print("  SPECIALIST AGENT OUTPUTS  (each wrote to shared state independently)")
     print(f"  {sep()}")
@@ -208,7 +208,7 @@ def run_case(graph, case: dict, index: int, total: int) -> dict:
         print(f"\n  [{label}]")
         print(f"  {_preview(output, 300)}")
 
-    # ── Final strategy ────────────────────────────────────────────────────────
+    # ── Final strategy ──────────────────────────────────────────────────────────────────────────────
     n_sources = len(activated)
     print(f"\n  {sep()}")
     print(f"  FINAL STRATEGY  (CCO synthesised {n_sources} report(s) from shared state)")
@@ -231,7 +231,7 @@ def routing_summary(results: list):
         print(f"  #{i}  {r['title']:<38}  {tag:<12}  [{agents_str}]")
     print()
     patterns = sorted({len(r["activated"]) for r in results})
-    print(f"  Patterns demonstrated: {patterns}  →  "
+    print(f"  Patterns demonstrated: {patterns}  ->  "
           "proves the orchestrator routes to exactly the right subset every time.")
     print(f"\n{div()}\n")
 
