@@ -67,7 +67,7 @@ A production-ready multi-agent system built with **LangGraph**, **Groq (Llama 3.
 
 ### 1. Install dependencies
 ```bash
-pip install -r requirements.txt
+pip install -e .
 ```
 
 ### 2. Configure environment
@@ -117,13 +117,12 @@ hospitality_multi_agent/
 │   ├── reputation/    server.py + langgraph.json  → port 8005
 │   └── forecast/      server.py + langgraph.json  → port 8006
 ├── src/
-│   ├── state.py       AgentState TypedDict with reducers
-│   ├── orchestrator.py  LLM router (Command pattern)
-│   ├── agents.py      Agent functions (bi, media, pricing, coordinator)
-│   └── graph.py       StateGraph wiring all RemoteGraph nodes
+│   ├── state.py        AgentState TypedDict with reducers
+│   ├── orchestrator.py LLM router (Command pattern, two-stage)
+│   └── graph.py        StateGraph wiring all RemoteGraph nodes
 ├── main.py            CLI entrypoint with formatted management report
 ├── mcp_server.py      FastMCP tool wrapper
-├── start_agents.ps1   Launches all 4 servers in separate terminals
+├── start_agents.ps1   Launches all 6 agent servers in separate terminals
 ├── langgraph.json     Root config (for langgraph dev on the orchestrator)
 └── .env               API keys (gitignored)
 ```

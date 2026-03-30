@@ -7,6 +7,16 @@ name = "hospitality-multi-agent"
 version = "0.1.0"
 description = "Hospitality Multi-Agent Intelligence System — LangGraph multi-pod demo"
 requires-python = ">=3.11"
+dependencies = [
+    "langchain>=0.3.0",
+    "langchain-core>=0.3.0",
+    "langchain-groq>=0.2.0",
+    "langgraph>=0.2.0",
+    "langgraph-cli[inmem]>=0.1.0",
+    "python-dotenv>=1.0.1",
+    "pydantic>=2.0.0",
+    "mcp[cli]>=1.0.0",
+]
 
 [tool.setuptools.packages.find]
 # Makes both `src` and `agents` importable after `pip install -e .`
