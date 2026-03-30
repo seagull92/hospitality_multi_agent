@@ -47,7 +47,7 @@ A production-ready multi-agent system built with **LangGraph**, **Groq (Llama 3.
 - **Dynamic routing** — orchestrator activates only agents whose required data is non-empty; 1 to 5 workers per query
 - **Blackboard pattern** — agents never call each other; all communication is JSON over HTTP through `AgentState`
 - **Parallel fan-out** — selected workers run simultaneously via `Command(goto=[...])`
-- **State reducers** — `_keep_nonempty`, `_merge_dicts`, `operator.add` prevent parallel write conflicts
+- **State reducers** — `_keep_nonempty`, `_keep_last`, `operator.add` prevent parallel write conflicts
 - **RemoteGraph exclusively** — no in-process fallback; every agent is a true independent microservice
 
 ### Use cases demonstrating routing patterns
@@ -55,11 +55,9 @@ A production-ready multi-agent system built with **LangGraph**, **Groq (Llama 3.
 | # | Scenario | Agents activated |
 |---|---|---|
 | 1 | Marketing channel crisis | 1 — `media_analyzer` |
-| 2 | Competitor rate war | 1 — `pricing_optimizer` |
-| 3 | Q4 revenue shortfall | 2 — `bi_analyzer` + `pricing_optimizer` |
-| 4 | Guest reputation crisis | 2 — `reputation_agent` + `media_analyzer` |
-| 5 | Q4 full commercial strategy | 3 — `bi` + `media` + `pricing` |
-| 6 | Annual strategic review | 5 — all agents |
+| 2 | Q4 revenue shortfall | 2 — `bi_analyzer` + `pricing_optimizer` |
+| 3 | Q4 full commercial strategy | 3 — `bi` + `media` + `pricing` |
+| 4 | Annual strategic review | 5 — all agents |
 
 ---
 

@@ -38,7 +38,7 @@ class AgentState(TypedDict):
     forecast_analysis:     Annotated[str,                  _keep_nonempty]
     final_strategy:        Annotated[str,                  _keep_nonempty]
 
-    # Append-only observability log — each agent appends its own entry.
+    # Observability hook — reserved for structured per-agent log entries.
     # operator.add merges concurrent parallel writes without conflicts.
-    # In production replace with LangSmith/OpenTelemetry tracing.
+    # Currently unused; replace with LangSmith/OpenTelemetry tracing in production.
     agent_messages:    Annotated[list[dict[str, Any]],    operator.add]

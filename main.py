@@ -1,7 +1,7 @@
 """
 Hospitality Multi-Agent Intelligence System — Demonstration Runner
 
-Runs 6 use cases that prove the AI Orchestrator activates only the agents
+Runs 4 use cases that prove the AI Orchestrator activates only the agents
 relevant to each scenario:
 
   #1  MARKETING CHANNEL CRISIS      1 agent   media_analyzer
