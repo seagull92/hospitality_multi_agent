@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Literal
 
 from dotenv import load_dotenv
@@ -32,30 +33,42 @@ class RoutingDecision(BaseModel):
 
 _router = _router_llm.with_structured_output(RoutingDecision)
 
-# Agent registry: maps each agent to its required data domain and capability.
-# Data-availability filtering is done deterministically before any LLM call.
-# The LLM only receives agents whose data domain is actually populated.
-_AGENT_REGISTRY: dict[str, dict[str, str]] = {
-    "bi_analyzer": {
-        "domain":     "bi_data",
-        "capability": "financial KPI analysis (occupancy, RevPAR, ADR, booking pace)",
-    },
-    "pricing_optimizer": {
-        "domain":     "bi_data",
-        "capability": "rate strategy and competitive positioning",
-    },
-    "media_analyzer": {
-        "domain":     "media_data",
-        "capability": "paid media performance (ad spend, ROAS, CTR by channel)",
-    },
-    "reputation_agent": {
-        "domain":     "review_data",
-        "capability": "guest satisfaction and online reputation management",
-    },
-    "revenue_forecast_agent": {
-        "domain":     "forecast_data",
-        "capability": "12-month revenue projection and demand modelling",
-    },
+
+@dataclass(frozen=True)
+class AgentSpec:
+    """Immutable descriptor for a specialist agent.
+
+    domain:     the state key that must be non-empty for this agent to be eligible.
+    capability: human-readable description used in the LLM routing prompt.
+    """
+    domain: str
+    capability: str
+
+
+# Agent registry: maps agent node names to their spec.
+# Stage 1 filtering reads spec.domain; Stage 2 prompt building reads spec.capability.
+# To add a new agent: append one entry here — no other routing code changes required.
+_AGENT_REGISTRY: dict[str, AgentSpec] = {
+    "bi_analyzer":            AgentSpec(
+        domain="bi_data",
+        capability="financial KPI analysis (occupancy, RevPAR, ADR, booking pace)",
+    ),
+    "pricing_optimizer":      AgentSpec(
+        domain="bi_data",
+        capability="rate strategy and competitive positioning",
+    ),
+    "media_analyzer":         AgentSpec(
+        domain="media_data",
+        capability="paid media performance (ad spend, ROAS, CTR by channel)",
+    ),
+    "reputation_agent":       AgentSpec(
+        domain="review_data",
+        capability="guest satisfaction and online reputation management",
+    ),
+    "revenue_forecast_agent": AgentSpec(
+        domain="forecast_data",
+        capability="12-month revenue projection and demand modelling",
+    ),
 }
 
 _SYSTEM_PROMPT = """\
@@ -104,16 +117,16 @@ def orchestrator_node(
         "forecast_data": state.get("forecast_data",  {}),
     }
 
-    # Stage 1: exclude agents whose data domain is absent — O(n) lookup
+    # Stage 1: exclude agents whose data domain is absent — O(n) filter
     available = {
-        name: meta
-        for name, meta in _AGENT_REGISTRY.items()
-        if data_domains.get(meta["domain"])
+        name: spec
+        for name, spec in _AGENT_REGISTRY.items()
+        if data_domains.get(spec.domain)
     }
 
     # Stage 2: LLM picks from available agents based on query intent only
     agents_block = "\n".join(
-        f"  {name}: {meta['capability']}" for name, meta in available.items()
+        f"  {name}: {spec.capability}" for name, spec in available.items()
     )
     system_prompt = _SYSTEM_PROMPT.format(available_agents=agents_block)
 

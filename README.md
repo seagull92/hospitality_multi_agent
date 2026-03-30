@@ -7,28 +7,29 @@ A production-ready multi-agent system built with **LangGraph**, **Groq (Llama 3.
 ## Architecture
 
 ```
-                          ┌─────────────────────────────────────────┐
-                          │           main.py / MCP tool            │
-                          └──────────────┬──────────────────────────┘
-                                         │  invoke(initial_state)
-                                         ▼
-                          ┌──────────────────────────────┐
-                          │   src/graph.py  (StateGraph) │
-                          │                              │
-                          │   START → orchestrator       │  ← in-process LLM router
-                          │              │               │    (Command pattern,
-                          │    ┌─────────┼──────────┐    │     1 to 5 workers)
-                          │    ▼         ▼          ▼    │
-                          │  :8001     :8002      :8003  │  ← RemoteGraph HTTP
-                          │ bi_anal.  media     pricing  │
-                          │              :8005    :8006  │
-                          │           reputa.  forecast  │
-                          │    └─────────┼──────────┘    │
-                          │             ▼                 │
-                          │     :8004 coordinator         │  ← RemoteGraph HTTP
-                          │             │                 │
-                          │           END                 │
-                          └──────────────────────────────┘
+  main.py / mcp_server.py
+         │
+         ▼
+  src/graph.py  ─  StateGraph
+         │
+       START
+         │
+         ▼
+    orchestrator  (in-process, LLM routing — Command pattern)
+         │
+         │  activates 1–5 agents in parallel based on query + available data
+         │
+    ┌────┼────────────────────────────┐
+    ▼    ▼    ▼         ▼             ▼
+  :8001 :8002 :8003   :8005         :8006      ← RemoteGraph (langgraph dev)
+  bi   media pricing reputation  forecast
+    │    │    │         │             │
+    └────┴────┴─────────┴─────────────┘
+                        │
+                        ▼
+                 :8004 coordinator               ← RemoteGraph (langgraph dev)
+                        │
+                       END
 ```
 
 ### Agents
