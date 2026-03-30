@@ -13,17 +13,24 @@ import os
 import sys
 import time
 import uuid
-from dotenv import load_dotenv
 
-load_dotenv()
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from dotenv import load_dotenv
 
 from src.graph import create_hospitality_graph
 
+load_dotenv()
+
 # ── Formatting helpers ────────────────────────────────────────────────────────
 W = 80
-def div(char="="): return char * W
-def sep():         return "-" * W
+
+
+def div(char="="):
+    return char * W
+
+
+def sep():
+    return "-" * W
+
 
 AGENT_LABELS = {
     "orchestrator":          "AI Orchestrator",
@@ -31,7 +38,7 @@ AGENT_LABELS = {
     "media_analyzer":        "Media & Marketing Director",
     "pricing_optimizer":     "Revenue & Pricing Specialist",
     "reputation_agent":      "Guest Experience Manager",
-    "revenue_forecast_agent":"Revenue Forecast Analyst",
+    "revenue_forecast_agent": "Revenue Forecast Analyst",
     "strategy_coordinator":  "Chief Commercial Officer (CCO)",
 }
 
@@ -41,7 +48,7 @@ AGENT_OUTPUT_FIELDS = {
     "media_analyzer":        ("media_analysis",       "Media & Marketing Director"),
     "pricing_optimizer":     ("pricing_analysis",     "Revenue & Pricing Specialist"),
     "reputation_agent":      ("reputation_analysis",  "Guest Experience Manager"),
-    "revenue_forecast_agent":("forecast_analysis",    "Revenue Forecast Analyst"),
+    "revenue_forecast_agent": ("forecast_analysis", "Revenue Forecast Analyst"),
 }
 
 # ── Use cases ─────────────────────────────────────────────────────────────────
@@ -49,7 +56,10 @@ USE_CASES = [
     {
         "title":   "MARKETING CHANNEL CRISIS",
         "pattern": "1 agent  →  media_analyzer only",
-        "query": "Google Ads CTR dropped from 3.2% to 0.9% and ROAS fell to 1.3x. What is wrong and how do we fix it?",
+        "query": (
+            "Google Ads CTR dropped from 3.2% to 0.9% and ROAS fell to 1.3x. "
+            "What is wrong and how do we fix it?"
+        ),
         "bi_data":       {},
         "media_data":    {
             "monthly_budget":  "$50,000",
@@ -63,7 +73,10 @@ USE_CASES = [
     {
         "title":   "Q4 REVENUE SHORTFALL",
         "pattern": "2 agents  →  bi_analyzer + pricing_optimizer",
-        "query": "RevPAR is 22% below Q4 target with 7 weeks left. Diagnose the performance and recommend a pricing response.",
+        "query": (
+            "RevPAR is 22% below Q4 target with 7 weeks left. "
+            "Diagnose the performance and recommend a pricing response."
+        ),
         "bi_data":       {
             "occupancy_rate":     "56%",
             "revpar":             "$118 (target $152)",
@@ -77,7 +90,10 @@ USE_CASES = [
     {
         "title":   "Q4 FULL COMMERCIAL STRATEGY",
         "pattern": "3 agents  →  bi_analyzer + media_analyzer + pricing_optimizer",
-        "query": "Q4 in 8 weeks: occupancy at 62%, Meta underperforming, competitor rates aggressive. Build a full commercial strategy.",
+        "query": (
+            "Q4 in 8 weeks: occupancy at 62%, Meta underperforming, competitor rates aggressive. "
+            "Build a full commercial strategy."
+        ),
         "bi_data":       {
             "occupancy_rate":     "62%",
             "revpar":             "$145",
@@ -95,7 +111,10 @@ USE_CASES = [
     {
         "title":   "ANNUAL STRATEGIC REVIEW",
         "pattern": "All 5 agents  →  bi + media + pricing + reputation + forecast",
-        "query": "Annual review: assess financial performance, marketing ROI, pricing, guest satisfaction, and produce a 12-month revenue forecast.",
+        "query": (
+            "Annual review: assess financial performance, marketing ROI, pricing, "
+            "guest satisfaction, and produce a 12-month revenue forecast."
+        ),
         "bi_data":       {
             "occupancy_rate":     "68%",
             "revpar":             "$152",
@@ -136,9 +155,7 @@ def build_initial_state(case: dict) -> dict:
         "reputation_analysis": "",
         "forecast_analysis":   "",
         "final_strategy":      "",
-        "history":             [],
         "agent_messages":      [],
-        "additional_insights": {},
     }
 
 
@@ -163,7 +180,7 @@ def run_case(graph, case: dict, index: int, total: int) -> dict:
         for node_name, delta in chunk.items():
             print(f"    {AGENT_LABELS.get(node_name, node_name):<42} done")
             for k, v in delta.items():
-                if k in ("history", "agent_messages"):
+                if k == "agent_messages":
                     acc[k] = acc.get(k, []) + v
                 else:
                     acc[k] = v
@@ -208,9 +225,9 @@ def routing_summary(results: list):
     print(div())
     print()
     for i, r in enumerate(results, 1):
-        n          = len(r["activated"])
+        n = len(r["activated"])
         agents_str = ", ".join(r["activated"]) if r["activated"] else "none"
-        tag        = "ALL agents" if n == 5 else f"{n} agent{'s' if n != 1 else ''} "
+        tag = "ALL agents" if n == 5 else f"{n} agent{'s' if n != 1 else ''} "
         print(f"  #{i}  {r['title']:<38}  {tag:<12}  [{agents_str}]")
     print()
     patterns = sorted({len(r["activated"]) for r in results})
@@ -226,7 +243,7 @@ def main():
 
     print(f"\n{div()}")
     print("  HOSPITALITY MULTI-AGENT INTELLIGENCE SYSTEM")
-    print("  6 use cases  |  dynamic orchestration  |  1 to 5 agents per query")
+    print("  4 use cases  |  dynamic orchestration  |  1 to 5 agents per query")
     print(div())
     print()
     print("  The AI Orchestrator reads each query + available data, then decides")
@@ -238,7 +255,7 @@ def main():
     print(f"  Start with:  .\\start_agents.ps1")
     print()
 
-    graph   = create_hospitality_graph()
+    graph = create_hospitality_graph()
     results = []
 
     for i, case in enumerate(USE_CASES, 1):

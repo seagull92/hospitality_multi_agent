@@ -1,12 +1,7 @@
-import sys
-import os
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
-
 from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.memory import MemorySaver
 from src.state import AgentState
-from src.agents import reputation_agent
+from agents.reputation.agent import reputation_agent
 
 
 def create_graph():

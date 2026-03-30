@@ -1,27 +1,26 @@
 import os
-import sys
-from langgraph.graph import StateGraph, START, END
-from langgraph.pregel.remote import RemoteGraph
-from langgraph.checkpoint.memory import MemorySaver
-from langgraph.types import RetryPolicy
+
 from dotenv import load_dotenv
+from langgraph.checkpoint.memory import MemorySaver
+from langgraph.graph import START, END, StateGraph
+from langgraph.pregel.remote import RemoteGraph
+from langgraph.types import RetryPolicy
+
+from src.orchestrator import orchestrator_node
+from src.state import AgentState
 
 load_dotenv()
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from src.state import AgentState
-from src.orchestrator import orchestrator_node
 
 # ── Agent server URLs ─────────────────────────────────────────────────────────
 # Each agent runs as an independent langgraph dev server (see agents/ directory).
 # Start all servers with: .\start_agents.ps1
 # Override with env vars for production deployments.
-_BI_URL          = os.getenv("BI_AGENT_URL",           "http://127.0.0.1:8001")
-_MEDIA_URL       = os.getenv("MEDIA_AGENT_URL",         "http://127.0.0.1:8002")
-_PRICING_URL     = os.getenv("PRICING_AGENT_URL",       "http://127.0.0.1:8003")
-_COORDINATOR_URL = os.getenv("COORDINATOR_AGENT_URL",   "http://127.0.0.1:8004")
-_REPUTATION_URL  = os.getenv("REPUTATION_AGENT_URL",    "http://127.0.0.1:8005")
-_FORECAST_URL    = os.getenv("FORECAST_AGENT_URL",      "http://127.0.0.1:8006")
+_BI_URL = os.getenv("BI_AGENT_URL", "http://127.0.0.1:8001")
+_MEDIA_URL = os.getenv("MEDIA_AGENT_URL", "http://127.0.0.1:8002")
+_PRICING_URL = os.getenv("PRICING_AGENT_URL", "http://127.0.0.1:8003")
+_COORDINATOR_URL = os.getenv("COORDINATOR_AGENT_URL", "http://127.0.0.1:8004")
+_REPUTATION_URL = os.getenv("REPUTATION_AGENT_URL", "http://127.0.0.1:8005")
+_FORECAST_URL = os.getenv("FORECAST_AGENT_URL", "http://127.0.0.1:8006")
 
 _retry = RetryPolicy(max_attempts=3)
 
@@ -38,11 +37,11 @@ def create_hospitality_graph():
     Flow:
         START
           └─► orchestrator  (in-process, LLM routing via Command)
-                ├─► bi_analyzer           RemoteGraph -> :8001  ─┐
-                ├─► media_analyzer        RemoteGraph -> :8002   │
-                ├─► pricing_optimizer     RemoteGraph -> :8003   ├─► strategy_coordinator :8004 -> END
-                ├─► reputation_agent      RemoteGraph -> :8005   │
-                └─► revenue_forecast_agent RemoteGraph -> :8006 ─┘
+                ├─► bi_analyzer            RemoteGraph -> :8001  ─┐
+                ├─► media_analyzer         RemoteGraph -> :8002   │  strategy_coordinator
+                ├─► pricing_optimizer      RemoteGraph -> :8003   ├─►  :8004  ->  END
+                ├─► reputation_agent       RemoteGraph -> :8005   │
+                └─► revenue_forecast_agent RemoteGraph -> :8006  ─┘
 
     The orchestrator activates only the agents relevant to the query and
     whose data fields are non-empty.  Any subset of 1-5 workers may run.

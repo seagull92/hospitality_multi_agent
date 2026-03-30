@@ -1,12 +1,7 @@
-import sys
-import os
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
-
 from langgraph.graph import StateGraph, START, END
 from langgraph.checkpoint.memory import MemorySaver
 from src.state import AgentState
-from src.agents import strategy_coordinator_agent
+from agents.coordinator.agent import strategy_coordinator_agent
 
 
 def create_graph():

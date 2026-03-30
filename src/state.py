@@ -1,6 +1,5 @@
-from typing import Annotated, List, Dict, Any
-from typing_extensions import TypedDict
 import operator
+from typing import Annotated, Any, TypedDict
 
 
 def _keep_last(current: Any, update: Any) -> Any:
@@ -10,16 +9,10 @@ def _keep_last(current: Any, update: Any) -> Any:
 
 
 def _keep_nonempty(current: Any, update: Any) -> Any:
-    """Keep the most recent non-empty value. Used for agent output fields (bi_analysis,
-    media_analysis, final_strategy): parallel agents that don't own that field return
-    an empty string, which should never overwrite real content written by the owning agent."""
+    """Keep the most recent non-empty value. Used for agent output fields so that a
+    parallel agent returning an empty string never overwrites content written by the
+    agent that owns that field."""
     return update if update else current
-
-
-def _merge_dicts(current: Dict, update: Dict) -> Dict:
-    """Merge two dicts; used for additional_insights so each agent can add its key
-    without overwriting what a parallel agent already wrote."""
-    return {**current, **update}
 
 
 class AgentState(TypedDict):
@@ -27,13 +20,13 @@ class AgentState(TypedDict):
     query:             Annotated[str,                      _keep_last]
 
     # Data context provided to the system
-    bi_data:           Annotated[Dict[str, Any],           _keep_last]
-    media_data:        Annotated[Dict[str, Any],           _keep_last]
-    review_data:       Annotated[Dict[str, Any],           _keep_last]
-    forecast_data:     Annotated[Dict[str, Any],           _keep_last]
+    bi_data:           Annotated[dict[str, Any],           _keep_last]
+    media_data:        Annotated[dict[str, Any],           _keep_last]
+    review_data:       Annotated[dict[str, Any],           _keep_last]
+    forecast_data:     Annotated[dict[str, Any],           _keep_last]
 
     # Orchestrator routing
-    next_agents:       Annotated[List[str],                _keep_last]
+    next_agents:       Annotated[list[str],                _keep_last]
     routing_reasoning: Annotated[str,                      _keep_last]
 
     # Agent outputs — _keep_nonempty prevents parallel agents returning ""
@@ -45,9 +38,7 @@ class AgentState(TypedDict):
     forecast_analysis:     Annotated[str,                  _keep_nonempty]
     final_strategy:        Annotated[str,                  _keep_nonempty]
 
-    # Append-only logs (operator.add = concatenate lists across parallel writes)
-    history:           Annotated[List[str],                operator.add]
-    agent_messages:    Annotated[List[Dict[str, Any]],     operator.add]
-
-    # Open-ended extension dict for future agents
-    additional_insights: Annotated[Dict[str, str],         _merge_dicts]
+    # Append-only observability log — each agent appends its own entry.
+    # operator.add merges concurrent parallel writes without conflicts.
+    # In production replace with LangSmith/OpenTelemetry tracing.
+    agent_messages:    Annotated[list[dict[str, Any]],    operator.add]

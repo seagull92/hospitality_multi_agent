@@ -1,9 +1,10 @@
 from typing import List, Literal
-from pydantic import BaseModel, Field
+
+from dotenv import load_dotenv
 from langchain.chat_models import init_chat_model
 from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.types import Command
-from dotenv import load_dotenv
+from pydantic import BaseModel, Field
 
 load_dotenv()
 
@@ -42,11 +43,11 @@ Your sole job is to analyze the incoming query and the available data fields, th
 which specialist worker agents must be activated.
 
 Available workers and their required data:
-- bi_analyzer            requires: BI data fields (occupancy, RevPAR, booking pace, financial metrics)
-- media_analyzer         requires: Media data fields (ad spend, ROAS, CTR, CPA, campaign data)
-- pricing_optimizer      requires: BI data fields (competitor pricing, ADR, occupancy) — pricing context
-- reputation_agent       requires: Review data fields (ratings, NPS, sentiment, review volume)
-- revenue_forecast_agent requires: Forecast data fields (trends, market growth, demand projections)
+- bi_analyzer            requires: BI data (occupancy, RevPAR, booking pace, financials)
+- media_analyzer         requires: Media data (ad spend, ROAS, CTR, CPA, campaigns)
+- pricing_optimizer      requires: BI data (competitor pricing, ADR, occupancy)
+- reputation_agent       requires: Review data (ratings, NPS, sentiment, review volume)
+- revenue_forecast_agent requires: Forecast data (trends, market growth, demand)
 
 Strict rules:
 1. NEVER activate an agent whose required data fields are EMPTY — it has nothing to analyze.
@@ -57,7 +58,15 @@ Strict rules:
 
 def orchestrator_node(
     state: dict,
-) -> Command[Literal["bi_analyzer", "media_analyzer", "pricing_optimizer", "reputation_agent", "revenue_forecast_agent"]]:
+) -> Command[
+    Literal[
+        "bi_analyzer",
+        "media_analyzer",
+        "pricing_optimizer",
+        "reputation_agent",
+        "revenue_forecast_agent",
+    ]
+]:
     """
     LLM-powered Orchestrator using the Command pattern (LangGraph 1.x standard).
 
@@ -69,7 +78,7 @@ def orchestrator_node(
     bi_data = state.get("bi_data", {})
     media_data = state.get("media_data", {})
 
-    review_data   = state.get("review_data",   {})
+    review_data = state.get("review_data", {})
     forecast_data = state.get("forecast_data", {})
 
     user_prompt = (
@@ -87,9 +96,8 @@ def orchestrator_node(
 
     return Command(
         update={
-            "next_agents": decision.agents,
+            "next_agents":       decision.agents,
             "routing_reasoning": decision.reasoning,
-            "history": [f"Orchestrator activated: {', '.join(decision.agents)}"],
         },
         goto=decision.agents,
     )
